@@ -1,0 +1,91 @@
+version: "3.8"
+
+x-superset-common: &superset-common
+  image: mbf/superset:6.0.0
+  env_file: .env
+  volumes:
+    - ./superset_config.py:/app/pythonpath/superset_config.py
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  superset-init:
+    <<: *superset-common
+    command: >
+      bash -c "
+        superset db upgrade &&
+        superset fab create-admin \
+          --username $${SUPERSET_ADMIN_USERNAME} \
+          --password $${SUPERSET_ADMIN_PASSWORD} \
+          --firstname $${SUPERSET_ADMIN_FIRSTNAME} \
+          --lastname $${SUPERSET_ADMIN_LASTNAME} \
+          --email $${SUPERSET_ADMIN_EMAIL} || true &&
+        superset init
+      "
+    restart: "no"
+
+  superset:
+    <<: *superset-common
+    command: >
+      bash -c "
+        superset db upgrade &&
+        gunicorn \
+          --bind 0.0.0.0:8088 \
+          --workers 4 \
+          --worker-class gthread \
+          --threads 20 \
+          --timeout 120 \
+          --limit-request-line 0 \
+          --limit-request-field_size 0 \
+          'superset.app:create_app()'
+      "
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+
+  superset-worker:
+    <<: *superset-common
+    command: celery --app=superset.tasks.celery_app:app worker --pool=prefork --concurrency=4 --max-tasks-per-child=128 -Ofair
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+
+  superset-worker-beat:
+    <<: *superset-common
+    command: celery --app=superset.tasks.celery_app:app beat --pidfile= --schedule=/tmp/celerybeat-schedule
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  redis_data:
