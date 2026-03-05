@@ -79,3 +79,9 @@ ENABLE_CORS = True
 
 # Webserver configuration
 SUPERSET_WEBSERVER_PORT = 8088
+
+# Database engine specs - show Oracle in dropdown
+PREFERRED_DATABASES = [
+    "PostgreSQL",
+    "Oracle",
+]

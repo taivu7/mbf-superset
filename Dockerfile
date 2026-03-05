@@ -31,7 +31,8 @@ RUN pip install --no-cache-dir \
     apache-superset==${SUPERSET_VERSION} \
     psycopg2-binary \
     redis \
-    pillow
+    pillow \
+    oracledb
 
 WORKDIR /app
 EXPOSE ${SUPERSET_PORT}
