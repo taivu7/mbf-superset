@@ -1,6 +1,9 @@
 version: "3.8"
 
 x-superset-common: &superset-common
+  build:
+    context: .
+    dockerfile: Dockerfile
   image: mbf/superset:6.0.0
   env_file: .env
   volumes:
