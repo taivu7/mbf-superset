@@ -1,4 +1,8 @@
 import os
+import sys
+
+import oracledb
+sys.modules["cx_Oracle"] = oracledb
 
 # Superset secret key
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY", "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET")
