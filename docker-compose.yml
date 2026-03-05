@@ -41,34 +41,12 @@ services:
 
   superset-init:
     <<: *superset-common
-    command: >
-      bash -c "
-        superset db upgrade &&
-        superset fab create-admin \
-          --username $${SUPERSET_ADMIN_USERNAME} \
-          --password $${SUPERSET_ADMIN_PASSWORD} \
-          --firstname $${SUPERSET_ADMIN_FIRSTNAME} \
-          --lastname $${SUPERSET_ADMIN_LASTNAME} \
-          --email $${SUPERSET_ADMIN_EMAIL} || true &&
-        superset init
-      "
+    command: ["bash", "-c", "superset db upgrade && superset fab create-admin --username $${SUPERSET_ADMIN_USERNAME} --password $${SUPERSET_ADMIN_PASSWORD} --firstname $${SUPERSET_ADMIN_FIRSTNAME} --lastname $${SUPERSET_ADMIN_LASTNAME} --email $${SUPERSET_ADMIN_EMAIL} || true && superset init"]
     restart: "no"
 
   superset:
     <<: *superset-common
-    command: >
-      bash -c "
-        superset db upgrade &&
-        gunicorn \
-          --bind 0.0.0.0:8088 \
-          --workers 4 \
-          --worker-class gthread \
-          --threads 20 \
-          --timeout 120 \
-          --limit-request-line 0 \
-          --limit-request-field_size 0 \
-          'superset.app:create_app()'
-      "
+    command: ["bash", "-c", "superset db upgrade && gunicorn --bind 0.0.0.0:8088 --workers 4 --worker-class gthread --threads 20 --timeout 120 --limit-request-line 0 --limit-request-field_size 0 'superset.app:create_app()'"]
     ports:
       - "${SUPERSET_PORT:-8088}:8088"
     depends_on:
